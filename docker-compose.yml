@@ -1,0 +1,109 @@
+services:
+  sonarr:
+    image: linuxserver/sonarr:latest
+    environment:
+      PUID: ${PUID}
+      GUID: ${GUID}
+      TZ: ${TZ}
+    volumes: 
+      - sonarr_config:/config
+      - /opt/tv:/tv:rw,Z
+      - /opt/torrents:/downloads:rw,z
+    networks:
+      - seedbox
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+  lidarr:
+    image: linuxserver/lidarr:latest
+    environment:
+      PUID: ${PUID}
+      GUID: ${GUID}
+      TZ: ${TZ}
+    volumes:
+      - lidarr_config:/config
+      - /opt/music:/music:rw,Z
+      - /opt/torrents:/downloads:rw,z
+    networks:
+      - seedbox
+    ports:
+      - 8686:8686
+    restart: unless-stopped
+  radarr:
+    image: linuxserver/radarr:latest
+    environment:
+      PUID: ${PUID}
+      GUID: ${GUID}
+      TZ: ${TZ}
+    volumes:
+      - radarr_config:/config
+      - /opt/movies:/movies:rw,Z
+      - /opt/torrents:/downloads:rw,z
+    networks:
+      - seedbox
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+  jackett:
+    image: linuxserver/jackett:latest
+    environment:
+      PUID: ${PUID}
+      GUID: ${GUID}
+      TZ: ${TZ}
+      AUTO_UPDATE: true
+    volumes:
+      - jackett_config:/config
+      - /opt/torrents:/downloads:rw,z
+    networks:
+      - seedbox
+    ports:
+      - 9117:9117
+    restart: unless-stopped
+  ombi:
+    image: linuxserver/ombi:latest
+    environment:
+      PUID: ${PUID}
+      GUID: ${GUID}
+      TZ: ${TZ}
+      BASE_URL: /ombi
+    volumes:
+      - ombi_config:/config
+    networks:
+      - seedbox
+    ports:
+      - 3579:3579
+    restart: unless-stopped
+  vpn:
+    image: dperson/openvpn-client:latest
+    network_mode: bridge
+    cap_add:
+      - NET_ADMIN  # Required
+    devices:
+      - /dev/net/tun
+    volumes:
+      - /etc/openvpn/ovpn_udp/ch300.nordvpn.com.udp.ovpn:/vpn/vpn.conf
+    environment: 
+      VPN_AUTH: 'username;password' # Example: Nord VPN > Advanced configuration > Service credentials (manual setup)
+      ROUTE: '0.0.0.0/0' # Allow all hosts
+    dns: 
+      - 1.1.1.1
+    ports:
+    - 9091:9091 # WebGUI for Transmission
+#    - 51413:51413/tcp # Transmission Peer Listening port ( optional )
+#    - 51413:51413/udp # Transmission Peer Listening port ( optional )
+    restart: unless-stopped
+  torrent:
+    image: ghcr.io/linuxserver/transmission:latest
+    network_mode: service:vpn
+    restart: unless-stopped
+    volumes:
+      - /opt/torrents:/downloads:rw,z
+
+networks:
+  seedbox:
+volumes:
+  sonarr_config:
+  lidarr_config:
+  radarr_config:
+  jackett_config:
+  ombi_config:
